@@ -44,10 +44,17 @@ namespace Halite
             }
         }
 
+        public List<Site> GetAllSites()
+        {
+            return _sitesList.ToList();
+        }
+
         public List<Site> GetSites(Func<Site, bool> filter)
         {
             return _sitesList.Where(filter).ToList();
         }
+
+        public int SiteCount => Height * Width;
 
         public Site this[int x, int y] => _sites[x.Mod(Config.Get().MapWidth), y.Mod(Config.Get().MapHeight)];
 

@@ -1,0 +1,17 @@
+ --- Init ---
+
+ --- Bot used 50 milliseconds ---
+-----------------------------------------------------------------------------
+ --- Frame #1 ---
+Unhandled Exception: System.IndexOutOfRangeException: Index was outside the bounds of the array.
+ --- Bot used 0 milliseconds ---
+ERRORED!
+Response received (if any):
+Unhandled Exception: System.IndexOutOfRangeException: Index was outside the bounds of the array.
+ --- Bot was killed. Below is the rest of its output (if any): ---
+   at Halite.Map..ctor(Int32 width, Int32 height) in C:\Users\chase\Desktop\HaliteCSharpStarter\Map.cs:line 92
+   at Halite.Map.ParseMap(String mapSizeStr, String productionMapStr, String gameMapStr, Int32 playerTag) in C:\Users\chase\Desktop\HaliteCSharpStarter\Map.cs:line 112
+   at Halite.Networking.GetInit() in C:\Users\chase\Desktop\HaliteCSharpStarter\Networking.cs:line 28
+   at Halite.MyBot.Main(String[] args) in C:\Users\chase\Desktop\HaliteCSharpStarter\MyBot.cs:line 24
+
+ --- End bot output ---
