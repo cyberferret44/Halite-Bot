@@ -1,7 +1,0 @@
-C:\HaliteCSharpStarter\obj\Debug\Halite.exe
-C:\HaliteCSharpStarter\obj\Debug\Halite.pdb
-C:\HaliteCSharpStarter\obj\Debug\Halite.csprojResolveAssemblyReference.cache
-C:\Users\chase\Desktop\HaliteCSharpStarter\bin\Debug\Halite.exe
-C:\Users\chase\Desktop\HaliteCSharpStarter\bin\Debug\Halite.pdb
-C:\Users\chase\Desktop\HaliteCSharpStarter\obj\Debug\Halite.exe
-C:\Users\chase\Desktop\HaliteCSharpStarter\obj\Debug\Halite.pdb
