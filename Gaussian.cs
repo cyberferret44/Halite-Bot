@@ -9,207 +9,121 @@ namespace Halite
 {
     class Gaussian
     {
-        private static readonly float[,] kernel7 = new float[,]
-        {
-            {0.000036f,    0.000363f,    0.001446f,    0.002291f,    0.001446f,    0.000363f,    0.000036f},
-            {0.000363f,    0.003676f,    0.014662f,    0.023226f,    0.014662f,    0.003676f,    0.000363f},
-            {0.001446f,    0.014662f,    0.058488f,    0.092651f,    0.058488f,    0.014662f,    0.001446f},
-            {0.002291f,    0.023226f,    0.092651f,    0.146768f,    0.092651f,    0.023226f,    0.002291f},
-            {0.001446f,    0.014662f,    0.058488f,    0.092651f,    0.058488f,    0.014662f,    0.001446f},
-            {0.000363f,    0.003676f,    0.014662f,    0.023226f,    0.014662f,    0.003676f,    0.000363f},
-            {0.000036f,    0.000363f,    0.001446f,    0.002291f,    0.001446f,    0.000363f,    0.000036f}
-        };
+        //private static readonly double[] kernel25 = new double[] { 0.000331f, 0.000842f, 0.001972f, 0.00426f, 0.008486f, 0.015589f, 0.026406f, 0.041244f, 0.059405f, 0.078898f, 0.096627f, 0.109123f, 0.113637f, 0.109123f, 0.096627f, 0.078898f, 0.059405f, 0.041244f, 0.026406f, 0.015589f, 0.008486f, 0.00426f, 0.001972f, 0.000842f, 0.000331f };
+        //private static readonly double[] kernel11 = new double[] { 0.001227f, 0.008468f, 0.037984f, 0.110892f, 0.210838f, 0.261182f, 0.210838f, 0.110892f, 0.037984f, 0.008468f, 0.001227f };
+        private static readonly double[] kernel7 = new double[] { 0.06136,0.24477, 0.38774, 0.24477, 0.06136 };
 
-        private static readonly float[,] kernel9 = new float[,]
-        {
-            { 0.000398f, 0.001142f, 0.002423f, 0.003805f, 0.004422f, 0.003805f, 0.002423f, 0.001142f, 0.000398f },
-            { 0.001142f, 0.003274f, 0.006947f, 0.010908f, 0.012679f, 0.010908f, 0.006947f, 0.003274f, 0.001142f },
-            { 0.002423f, 0.006947f, 0.014739f, 0.023143f, 0.026899f, 0.023143f, 0.014739f, 0.006947f, 0.002423f },
-            { 0.003805f, 0.010908f, 0.023143f, 0.036340f, 0.042238f, 0.036340f, 0.023143f, 0.010908f, 0.003805f },
-            { 0.004422f, 0.012679f, 0.026899f, 0.042238f, 0.049093f, 0.042238f, 0.026899f, 0.012679f, 0.004422f },
-            { 0.003805f, 0.010908f, 0.023143f, 0.036340f, 0.042238f, 0.036340f, 0.023143f, 0.010908f, 0.003805f },
-            { 0.002423f, 0.006947f, 0.014739f, 0.023143f, 0.026899f, 0.023143f, 0.014739f, 0.006947f, 0.002423f },
-            { 0.001142f, 0.003274f, 0.006947f, 0.010908f, 0.012679f, 0.010908f, 0.006947f, 0.003274f, 0.001142f },
-            { 0.000398f, 0.001142f, 0.002423f, 0.003805f, 0.004422f, 0.003805f, 0.002423f, 0.001142f, 0.000398f }
-        };
-
-        //private static readonly float[,] kernel11 = new float[,]
+        //public static void SetKernel(Map map, bool bob = true)
         //{
-        //    { 0.000513f, 0.001045f, 0.001815f, 0.002694f, 0.003414f, 0.003694f, 0.003414f, 0.002694f, 0.001815f, 0.001045f, 0.000513f },
-        //    { 0.001045f, 0.002126f, 0.003694f, 0.005482f, 0.006947f, 0.007518f, 0.006947f, 0.005482f, 0.003694f, 0.002126f, 0.001045f },
-        //    { 0.001815f, 0.003694f, 0.006420f, 0.009527f, 0.012073f, 0.013065f, 0.012073f, 0.009527f, 0.006420f, 0.003694f, 0.001815f },
-        //    { 0.002694f, 0.005482f, 0.009527f, 0.014138f, 0.017916f, 0.019388f, 0.017916f, 0.014138f, 0.009527f, 0.005482f, 0.002694f },
-        //    { 0.003414f, 0.006947f, 0.012073f, 0.017916f, 0.022704f, 0.024568f, 0.022704f, 0.017916f, 0.012073f, 0.006947f, 0.003414f },
-        //    { 0.003694f, 0.007518f, 0.013065f, 0.019388f, 0.024568f, 0.026586f, 0.024568f, 0.019388f, 0.013065f, 0.007518f, 0.003694f },
-        //    { 0.003414f, 0.006947f, 0.012073f, 0.017916f, 0.022704f, 0.024568f, 0.022704f, 0.017916f, 0.012073f, 0.006947f, 0.003414f },
-        //    { 0.002694f, 0.005482f, 0.009527f, 0.014138f, 0.017916f, 0.019388f, 0.017916f, 0.014138f, 0.009527f, 0.005482f, 0.002694f },
-        //    { 0.001815f, 0.003694f, 0.006420f, 0.009527f, 0.012073f, 0.013065f, 0.012073f, 0.009527f, 0.006420f, 0.003694f, 0.001815f },
-        //    { 0.001045f, 0.002126f, 0.003694f, 0.005482f, 0.006947f, 0.007518f, 0.006947f, 0.005482f, 0.003694f, 0.002126f, 0.001045f },
-        //    { 0.000513f, 0.001045f, 0.001815f, 0.002694f, 0.003414f, 0.003694f, 0.003414f, 0.002694f, 0.001815f, 0.001045f, 0.000513f }
-        //};
+        //    //int mapSize = map.Height * map.Width;
+        //    //int numPlayers = map.GetSites(x => x.Owner > 0).Distinct().Count();
+        //    //int gaussSize = (int)Math.Round(Math.Sqrt((double)mapSize / (double)numPlayers));
+        //    //gaussSize = gaussSize % 2 == 0 ? gaussSize - 1 : gaussSize;
+        //    //Kernel = bob ? kernel25 : kernel11;
+        //    Kernel = kernel7;
+        //}
 
-        public static void SetKernel(Map map)
-        {
-            int mapSize = map.Height * map.Width;
-            int numPlayers = map.GetSites(x => x.Owner > 0).Count;
-            int squaresPerPlayer = mapSize / numPlayers;
+        private static double[] Kernel = kernel7;
 
-            if (squaresPerPlayer > 400 || mapSize > 1200)
-            {
-                Reduce = true;
-                squaresPerPlayer /= 4;
-            }
-
-            if (squaresPerPlayer <= 100)
-            {
-                Kernel = kernel7;
-            }
-            else
-            {
-                Kernel = kernel9;
-            }
-        }
-
-        private static float[,] Kernel;
-        private static bool Reduce = false;
-
-        public static Heuristic<Site> ShadeHeuristic(Heuristic<Site> startingHeuristic, Map map, bool noCombat)
+        public static Heuristic ShadeHeuristic(Heuristic startingHeuristic, Map map, bool noCombat)
         {
             var all = map.GetAllSites();
-            
-            // Average out enemy values so that our algorithm doesn't seek them out
-            if(noCombat)
+            if (noCombat)
             {
-                float averageProduction = (float)all.Sum(x => x.Production) / (float)all.Count;
-                float averageStrength = (float)all.Sum(x => x.Strength) / (float)all.Count;
-                float averageValue = averageProduction / averageStrength;
+                double averageProduction = (double)all.Sum(x => x.Production) / (double)all.Count;
+                double averageStrength = (double)all.Sum(x => x.Strength) / (double)all.Count;
+                double averageValue = averageProduction / averageStrength;
                 foreach (var s in map.GetSites(x => x.IsEnemy))
                 {
-                    startingHeuristic.Update(s, averageValue);
+                    startingHeuristic.Update(s, averageProduction, averageStrength, averageValue);
                 }
             }
 
-            foreach(var s in map.GetMySites())
+            //foreach (var s in map.GetMySites())
+            //{
+            //    startingHeuristic.Update(s, 0f);
+            //}
+            //foreach(var s in map.GetAllSites())
+            //{
+            //    startingHeuristic.Update(s, Math.Pow(startingHeuristic.Get(s).Value, 1.5));
+            //}
+
+            //Heuristic bigShade = SimpleShade(startingHeuristic, map);
+            //SetKernel(map, false);
+            //Heuristic littleShade = SimpleShade(startingHeuristic, map);
+            int mapSize = map.Height * map.Width;
+            int numPlayers = map.GetSites(x => x.Owner > 0).Distinct().Count();
+            int iterations = (int)Math.Round(Math.Sqrt((double)mapSize / (double)numPlayers)) / 4;
+            //Heuristic littleHeuristic = SimpleShade(startingHeuristic, map);
+            //littleHeuristic = SimpleShade(littleHeuristic, map);
+            Heuristic shadedHeuristic = SimpleShade(startingHeuristic, map);
+            for (int i=0; i <= iterations; i++)
             {
-                startingHeuristic.Update(s, 0f);
+                shadedHeuristic = SimpleShade(shadedHeuristic, map);
+                //foreach (var s in map.GetAllSites())
+                //{
+                //    startingHeuristic.Update(s, Math.Pow(shadedHeuristic.Get(s).Value, 1.2) * 10);
+                //}
             }
 
-            Heuristic<Point> resultHeuristic = null;
-            if (Reduce)
+            //Heuristic resultHeuristic = new Heuristic();
+            //foreach (var kvp in startingHeuristic.GetDictionary())
+            //{
+            //    //var littleVal = littleHeuristic.Get(kvp.Key).Value;
+            //    var biggerVal = shadedHeuristic.Get(kvp.Key).Value;
+            //    //double newValue = kvp.Key.Production != 0 ? biggerVal * .9 + kvp.Value.Value * .1 : biggerVal * .1f;
+            //    resultHeuristic.AddNew(kvp.Key, kvp.Key.Production, kvp.Key.Strength, newValue);
+            //}
+            Heuristic result = new Heuristic();
+            foreach(var v in shadedHeuristic.GetDictionary())
             {
-                resultHeuristic = ReduceShade(startingHeuristic, map.Width, map.Height);
+                result.AddNew(v.Key, v.Value.Production, v.Value.Strength, v.Value.Production/ v.Value.Strength);
             }
-            else
-            {
-                var tempHeuristic = new Heuristic<Point>();
-                foreach(var v in startingHeuristic.GetDictionary())
-                {
-                    tempHeuristic.AddNew(new Point(v.Key.X, v.Key.Y), v.Value);
-                }
-                resultHeuristic = SimpleShade(tempHeuristic, map.Width, map.Height, Kernel);
-            }
-
-            foreach (var kvp in startingHeuristic.GetDictionary())
-            {
-                var p = new Point(kvp.Key.X, kvp.Key.Y);
-                var resultVal = resultHeuristic.Get(p);
-                float newValue = resultVal.Production != 0 ? resultVal.Value * .9f + kvp.Value.Value * .1f : resultVal.Value * .1f;
-                resultHeuristic.Update(p, newValue);
-            }
-
-            var finalResult = new Heuristic<Site>();
-            foreach(var kvp in resultHeuristic.GetDictionary())
-            {
-                finalResult.AddNew(map[kvp.Key.X, kvp.Key.Y], kvp.Value);
-            }
-            return finalResult;
+            return result;
         }
 
-        public static Heuristic<Point> ReduceShade(Heuristic<Site> startingHeuristic, int width, int height)
+        public static Heuristic SimpleShade(Heuristic baseHeuristic, Map map)
         {
-            var reducedHeuristic = new Heuristic<Point>();
-            // step 1 create new map
-            int newWidth = (int)Math.Ceiling((float)width / 2f);
-            int newHeight = (int)Math.Ceiling((float)height / 2f);
-            for (int x=0; x < newWidth; x++)
-            {
-                for (int y = 0; y < newHeight; y++)
-                {
-                    reducedHeuristic.AddNew(new Point { X = x, Y = y }, 0f, 0f, 0f);
-                }
-            }
-
-            foreach (var kvp in startingHeuristic.GetDictionary())
-            {
-                Point p = new Point { X = kvp.Key.X / 2, Y = kvp.Key.Y / 2 };
-                float mult = .25f;
-                mult *= p.X == width && p.X % 2 == 1 ? 2 : 1;
-                mult *= p.Y == height && p.Y % 2 == 1 ? 2 : 1;
-                reducedHeuristic.Increase(p, kvp.Value.Production * mult, kvp.Value.Strength * mult, kvp.Value.Value * mult);
-            }
-
-            // call shader
-            reducedHeuristic = SimpleShade(reducedHeuristic, newWidth, newHeight, Kernel);
-
-            var result = new Heuristic<Point>();
-
-            // undo the map creation
-            for (int x = 0; x <width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    Point p = new Point { X = x / 2, Y = y / 2 };
-                    var value = reducedHeuristic.Get(p);
-                    result.AddNew(new Point { X = x, Y = y }, value);
-                }
-            }
-
-            return SimpleShade(result, width, height, kernel7);
-        }
-
-        public static Heuristic<Point> SimpleShade(Heuristic<Point> baseHeuristic, int width, int height, float[,] kernelToUse)
-        {
-            int Size = kernelToUse.GetLength(1);
-            int Center = (int)(Size / 2);
-
-            Dictionary<Point, float> dictionary = new Dictionary<Point, float>();
-
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    dictionary.Add(new Point(x, y), 0f);
-                }
-            }
+            Heuristic firstDictionary = new Heuristic();
+            Heuristic lastDictionary = new Heuristic();
+            int kernelSize = Kernel.Length;
 
             foreach (var kvp in baseHeuristic.GetDictionary())
             {
-                for (int x = 0; x < Size; x++)
+                firstDictionary.AddNew(kvp.Key, 0.0, 0.0, 0.0);
+                lastDictionary.AddNew(kvp.Key, 0.0, 0.0, 0.0);
+            }
+
+            // Horizonotal Shade
+            foreach (var kvp in baseHeuristic.GetDictionary())
+            {
+                for (int x = 0; x < Kernel.Length; x++)
                 {
-                    for (int y = 0; y < Size; y++)
-                    {
-                        int deltaX = x - Center;
-                        int deltaY = y - Center;
-                        Point p = Truncate(kvp.Key.X + deltaX, kvp.Key.Y + deltaY, height, width);
-                        dictionary[p] += kvp.Value.Value * kernelToUse[x, y];
-                    }
+                    int deltaX = x - kernelSize;
+                    Site target = map[kvp.Key.X + deltaX, kvp.Key.Y];
+                    var seedSite = kvp.Key.IsMine ? baseHeuristic.Get(target) : kvp.Value;
+                    firstDictionary.AddValue(target, seedSite.Production * Kernel[x], seedSite.Strength * Kernel[x]);// += kvp.Value.Value * Kernel[x];
                 }
             }
 
-            foreach (var kvp in dictionary)
+            // Vertical Shade
+            foreach (var kvp in firstDictionary.GetDictionary())
             {
-                baseHeuristic.Update(kvp.Key, kvp.Value);
+                for (int y = 0; y < Kernel.Length; y++)
+                {
+                    int deltaY = y - kernelSize;
+                    Site target = map[kvp.Key.X, kvp.Key.Y + deltaY];
+                    var seedSite = kvp.Key.IsMine ? firstDictionary.Get(target) : kvp.Value;
+                    lastDictionary.AddValue(target, seedSite.Production * Kernel[y], seedSite.Strength * Kernel[y]); // += kvp.Value * Kernel[y];
+                }
             }
-            return baseHeuristic;
-        }
 
-        public static Point Truncate(int x, int y, int height, int width)
-        {
-            return new Point()
+            Heuristic result = new Heuristic();
+            foreach (var kvp in lastDictionary.GetDictionary())
             {
-                X = x < 0 ? width + x : x >= width ? x - width : x,
-                Y = y < 0 ? height + y : y >= height ? y - height : y
-            };
+                result.AddNew(kvp.Key, kvp.Value.Production, kvp.Value.Strength, 0.0);
+            }
+            return result;
         }
     }
 }

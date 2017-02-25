@@ -13,18 +13,18 @@ namespace Halite
         public static int MyId;
         public static int DEPTH = 4;
         public static bool InCombat = false;
+        public static double OpportunityCost;
 
         public static void Main(string[] args)
         {
             #region Shit to Start the Game
-            //if (Directory.GetCurrentDirectory() == "C:\\HaliteCSharpStarter")
-                Debugger.Launch();
-
+            Debugger.Launch();
+            
             Console.SetIn(Console.In);
             Console.SetOut(Console.Out);
             var map = Networking.GetInit();
+            OpportunityCost = map.GetSites(x => x.IsNeutral).OrderByDescending(x => x.Production).Take(map.GetSites(x => x.IsNeutral).Count / 3).Average(x => (double)x.Production);
             MyId = Config.Get().PlayerTag;
-            Gaussian.SetKernel(map);
             Networking.SendInit(RandomBotName);
             #endregion
 
@@ -35,7 +35,7 @@ namespace Halite
                 InCombat = GetHostileNeutralSites(map).Any();
                 var sitesToAvoid = new HashSet<Site>();
                 var turn = new Turn(map.GetMySites());
-                var heuristic = Gaussian.ShadeHeuristic(Heuristic<Site>.GetStartingHeuristic(map), map, InCombat);
+                var heuristic = Gaussian.ShadeHeuristic(Heuristic.GetStartingHeuristic(map), map, InCombat);
                 #endregion
 
                 #region Combat!!!!!
@@ -74,14 +74,14 @@ namespace Halite
                 //    if (neutralSites.Any(n => ManhattanDistance(n, site, map.Height, map.Width) < 8))
                 //    {
                 //        Helper.AssistCombatants(turn, heuristic, map);
-                //        InCombat = true;
                 //    }
                 //}
 
                 #region building out the neutral attack moves...
                 var orderedList = GetOrderedNeutralConquerMoves(map, heuristic, turn.RemainingSites);
-                //orderedList = orderedList.Take(Math.Min(5, orderedList.Count * 7 / 10)).ToList(); // Prune Bad Moves
-
+                orderedList = orderedList.Take(orderedList.Count / 2).ToList(); // Prune Bad Moves
+                orderedList = orderedList.Where(x => x.Target.Neighbors.Any(n => n.IsMine && n.GetDirectionToNeighbour(x.Target) == Direction.North || n.GetDirectionToNeighbour(x.Target) == Direction.East)).ToList();
+                // PRUNE orderedList IF IN COMBAT
                 foreach (var nextBest in orderedList)
                 {
                     if (nextBest.MovesToDo.All(m => turn.RemainingSites.Contains(m.Site)) && !nextBest.MovesToDo.Any(m => turn.Moves.Any(ick => ick.Target == m.Target)))
@@ -142,7 +142,7 @@ namespace Halite
                                 (s.Owner == 0 && s.Neighbors.Any(x => x.IsMine) && s.Neighbors.Any(x => x.IsEnemy))).ToList();
         }
 
-        private static void RunAway(Site site, HashSet<Site> sitesToAvoid, Heuristic<Site> heuristic, List<Move> moves)
+        private static void RunAway(Site site, HashSet<Site> sitesToAvoid, Heuristic heuristic, List<Move> moves)
         {
             var validNeighbors = site.Neighbors.Where(n => (!moves.Any(m => m.Site == n) ? n.Strength : 0)
                                     + moves.Where(m => m.Site.GetNeighborAtDirection(m.Direction) == n).Sum(x => x.Site.Strength)
@@ -158,32 +158,31 @@ namespace Halite
             }
         }
 
-        private static Dictionary<Point, float> GetProductions(Map m)
+        private static Dictionary<Point, double> GetProductions(Map m)
         {
-            var returnVal = new Dictionary<Point, float>();
-            m.GetSites(x => true).ForEach(x => returnVal.Add(new Point(x.X, x.Y), (float)x.Production));
+            var returnVal = new Dictionary<Point, double>();
+            m.GetSites(x => true).ForEach(x => returnVal.Add(new Point(x.X, x.Y), (double)x.Production));
             return returnVal;
         }
 
-        private static List<PotentialMove> GetOrderedNeutralConquerMoves(Map map, Heuristic<Site> heuristic, HashSet<Site> availableSites)
+        private static List<PotentialMove> GetOrderedNeutralConquerMoves(Map map, Heuristic heuristic, HashSet<Site> availableSites)
         {
             var neutralSites = GetPassiveNeutralNeighbors(map);
-            float opportunityCost = (float)neutralSites.Sum(x => x.Production) / (float)neutralSites.Count();
-            DEPTH =  Math.Min(20 - neutralSites.Count / 70, 4); //InCombat ? 1 :
+            DEPTH =  Math.Max(18 - neutralSites.Count / 3, 4); //InCombat ? 1 :
             List<PotentialMove> potentialMoves = new List<PotentialMove>();
             foreach (var ns in neutralSites)
             {
-                potentialMoves.AddRange(GetPotentialMoves(ns, heuristic, opportunityCost, availableSites));
+                potentialMoves.AddRange(GetPotentialMoves(ns, heuristic, availableSites));
             }
             return potentialMoves.OrderByDescending(x => x.Value).ToList();
         }
 
-        private static List<PotentialMove> GetPotentialMoves(Site target, Heuristic<Site> h, float opportunityCost, HashSet<Site> availableSites)
+        private static List<PotentialMove> GetPotentialMoves(Site target, Heuristic h, HashSet<Site> availableSites)
         {
-            return GetPotentialMoves(target, h, target.Neighbors.Where(n => n.Owner == MyId).ToList(), new List<Site>(), 1, 0, opportunityCost, availableSites);
+            return GetPotentialMoves(target, h, target.Neighbors.Where(n => n.Owner == MyId).ToList(), new List<Site>(), 1, 0, availableSites);
         }
 
-        private static List<PotentialMove> GetPotentialMoves(Site target, Heuristic<Site> h, List<Site> newPieces, List<Site> previousSites, int layer, int productionStrength, float opportunityCost, HashSet<Site> sitesICanUse)
+        private static List<PotentialMove> GetPotentialMoves(Site target, Heuristic h, List<Site> newPieces, List<Site> previousSites, int layer, int productionStrength, HashSet<Site> sitesICanUse)
         {
             // Add in the option to wait...
             List<Move> stillMoves = new List<Move>();
@@ -235,7 +234,7 @@ namespace Halite
                             moves.Add(new Move { Site = site, Direction = site.GetDirectionToNeighbour(site.Neighbors.First(n => previousSites.Contains(n))) });
                     }
                     moves.AddRange(stillMoves);
-                    int strengthCost = moves.Sum(z => z.Site.Production) + Math.Max(0, moves.Sum(z => z.Site.Strength) + productionStrength - 255) + (int)Math.Ceiling(opportunityCost * layer); //TODO add average production to loss
+                    int strengthCost = moves.Sum(z => z.Site.Production) + Math.Max(0, moves.Sum(z => z.Site.Strength) + productionStrength - 255) + (int)Math.Ceiling(OpportunityCost * end.Count * layer); //TODO add average production to loss
                     result.Add(new PotentialMove { Target = target, MovesToDo = moves, Value = h.GetReducedValue(target, strengthCost) });
                 }
             }
@@ -255,11 +254,11 @@ namespace Halite
                         foreach (var ps in sa)
                             moreStillMoves.Add(new Move() { Site = ps, Direction = Direction.Still });
                         moreStillMoves.AddRange(stillMoves);
-                        int strengthCost = moreStillMoves.Sum(sm => sm.Site.Production) + (int)Math.Ceiling(opportunityCost * (layer + (target.Strength - moreStillMoves.Sum(x => x.Site.Strength)) / moreStillMoves.Sum(x => x.Site.Production) + 1));
+                        int strengthCost = moreStillMoves.Sum(sm => sm.Site.Production) + (int)Math.Ceiling(OpportunityCost * sa.Count * (layer + (target.Strength - moreStillMoves.Sum(x => x.Site.Strength)) / moreStillMoves.Sum(x => x.Site.Production) + 1));
                         result.Add(new PotentialMove { MovesToDo = moreStillMoves, Target = target, Value = h.GetReducedValue(target, strengthCost) });
                     }
                     sa.AddRange(previousSites);
-                    result.AddRange(GetPotentialMoves(target, h, newPiecesParam, sa, layer + 1, productionStrength + sa.Sum(s => s.Production), opportunityCost, sitesICanUse));
+                    result.AddRange(GetPotentialMoves(target, h, newPiecesParam, sa, layer + 1, productionStrength + sa.Sum(s => s.Production), sitesICanUse));
                 }
             }
             return result;
@@ -298,7 +297,7 @@ namespace Halite
         struct PotentialMove
         {
             public Site Target;
-            public float Value;
+            public double Value;
             public List<Move> MovesToDo;
         }
     }
