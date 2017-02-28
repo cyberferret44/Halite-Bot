@@ -9,23 +9,27 @@ namespace Halite
 {
     public class MyBot
     {
-        public const string RandomBotName = "PointlessBot";
+        public const string RandomBotName = "SlimeMoldBot";
         public static int MyId;
         public static int DEPTH = 4;
         public static bool InCombat = false;
         public static double OpportunityCost;
+        public static ValueCalculator calculator;
 
         public static void Main(string[] args)
         {
             #region Shit to Start the Game
             Debugger.Launch();
-            
+            calculator = new ValueCalculator();
             Console.SetIn(Console.In);
             Console.SetOut(Console.Out);
             var map = Networking.GetInit();
             OpportunityCost = map.GetSites(x => x.IsNeutral).OrderByDescending(x => x.Production).Take(map.GetSites(x => x.IsNeutral).Count / 3).Average(x => (double)x.Production);
             MyId = Config.Get().PlayerTag;
             Networking.SendInit(RandomBotName);
+
+            var SlimeH = SlimeHeuristic.GetSlimeHeuristic(Heuristic.GetStartingHeuristic(map), map);
+            SlimeH.WriteCSV("csv2");
             #endregion
 
             while (true)
@@ -66,7 +70,7 @@ namespace Halite
                 }
                 #endregion
 
-                
+
                 //var neutralSites = GetHostileNeutralSites(map);
                 //List<Site> combatAssistanceSites = new List<Site>();
                 //foreach (var site in turn.RemainingSites)
@@ -78,9 +82,12 @@ namespace Halite
                 //}
 
                 #region building out the neutral attack moves...
-                var orderedList = GetOrderedNeutralConquerMoves(map, heuristic, turn.RemainingSites);
-                orderedList = orderedList.Take(orderedList.Count / 2).ToList(); // Prune Bad Moves
-                orderedList = orderedList.Where(x => x.Target.Neighbors.Any(n => n.IsMine && n.GetDirectionToNeighbour(x.Target) == Direction.North || n.GetDirectionToNeighbour(x.Target) == Direction.East)).ToList();
+                var tempSlime = calculator.CalculatePotentialValue(SlimeH, GetPassiveNeutralNeighbors(map), map);
+                var bestTargets = GetPassiveNeutralNeighbors(map).OrderByDescending(x => tempSlime.Get(x).Value).ToList();
+                bestTargets.Take(Math.Min(9, (int)(bestTargets.Count * .7)));
+                var orderedList = GetOrderedNeutralConquerMoves(map, tempSlime, turn.RemainingSites);
+                //orderedList = orderedList.Take(orderedList.Count / 2).ToList(); // Prune Bad Moves
+                //orderedList = orderedList.Where(x => x.Target.Neighbors.Any(n => n.IsMine && n.GetDirectionToNeighbour(x.Target) == Direction.North || n.GetDirectionToNeighbour(x.Target) == Direction.East)).ToList();
                 // PRUNE orderedList IF IN COMBAT
                 foreach (var nextBest in orderedList)
                 {
@@ -90,7 +97,7 @@ namespace Halite
                     }
                 }
                 #endregion
-                
+
                 // mark and/or handle dangerous sites
                 //foreach (var zero in map.GetSites(x => x.IsZeroNeutral && x.Neighbors.Any(n => n.IsEnemy && n.Strength > 0) && x.Neighbors.Any(n => n.IsMine)))
                 //{
@@ -104,11 +111,11 @@ namespace Halite
                 //        }
                 //    }
                 //}
-
+                var internalHeuristic = InternalHeuristic.GetInternalHeuristic(tempSlime, bestTargets);
                 foreach (var site in turn.RemainingSites)
                 {
                     // We want to move it to the area with the highest potential
-                    Site bestTarget = Helper.GetBestNeighbor(site, heuristic, turn.Moves, map);
+                    Site bestTarget = Helper.GetBestNeighbor(site, internalHeuristic, turn.Moves, map);
                     if (bestTarget != null)
                         turn.AddMove(site, bestTarget);
                 }

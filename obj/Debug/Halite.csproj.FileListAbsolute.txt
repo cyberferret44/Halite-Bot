@@ -1,1 +1,2 @@
 C:\HaliteCSharpStarter\obj\Debug\Halite.csprojResolveAssemblyReference.cache
+C:\HaliteCSharpStarter2\obj\Debug\Halite.csprojResolveAssemblyReference.cache

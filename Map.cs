@@ -59,8 +59,10 @@ namespace Halite
         public Site this[int x, int y] => _sites[x.Mod(Config.Get().MapWidth), y.Mod(Config.Get().MapHeight)];
 
         public ushort Width => (ushort)_sites.GetLength(0);
-        
         public ushort Height => (ushort)_sites.GetLength(1);
+        public int Area => Height * Width;
+        public int NumPlayers => GetSites(x => !x.IsNeutral).Select(x => x.Owner).Distinct().Count();
+        public int AreaPerPlayer => (int)(Area / NumPlayers);
 
         public List<Site> GetMySites()
         {

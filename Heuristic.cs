@@ -1,9 +1,7 @@
-﻿using System;
+﻿using System.Linq;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
-using System.Threading.Tasks;
-using System.Drawing;
 
 namespace Halite
 {
@@ -56,8 +54,8 @@ namespace Halite
         public double GetReducedValue(Site target, double strengthLost)
         {
             var h = information[target];
-            double value = h.Value * .9 + target.Production / (target.Strength == 0 ? 1 : target.Strength) * .1;
-            return value * h.Strength / (h.Strength + strengthLost); //TODO may need reevaluated...  Should only be used for conquering neutral territory
+            double value = h.Value; // * .9 + target.Production / (target.Strength == 0 ? 1 : target.Strength) * .1;
+            return value * target.Production / (strengthLost + target.Strength); //TODO may need reevaluated...  Should only be used for conquering neutral territory
         }
 
         public Dictionary<Site, SiteValue> GetDictionary()
@@ -88,6 +86,47 @@ namespace Halite
                 result.AddNew(site, production, strength);
             }
             return result;
+        }
+
+        public Heuristic Clone()
+        {
+            Heuristic newHeuristic = new Heuristic();
+            foreach(var kvp in information)
+            {
+                newHeuristic.AddNew(kvp.Key, kvp.Value);
+            }
+
+            return newHeuristic;
+        }
+
+        public void ZeroOutMySites()
+        {
+            List<Site> keys = new List<Site>();
+            keys.AddRange(information.Keys.Where(x => x.IsMine));
+            foreach(var key in keys)
+            {
+                Update(key, 0.0);
+            }
+        }
+
+        public void WriteCSV(string name = "csv")
+        {
+            var csv = new StringBuilder();
+            string filePath = Directory.GetCurrentDirectory();
+
+            var list = information.Select(x => x.Key).OrderBy(x => x.X+ x.Y * 1000);
+            foreach(var site in list)
+            {
+                if(site.X == 0 && site.Y != 0)
+                {
+                    csv.Length--;
+                    csv.Append('\n');
+                }
+                csv.Append($"{(int)information[site].Value},");
+            }
+            csv.Length--;
+
+            File.WriteAllText(Directory.GetCurrentDirectory() + $"\\{name}.csv", csv.ToString());
         }
     }
 
