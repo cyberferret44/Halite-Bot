@@ -39,7 +39,7 @@ namespace Halite
                 InCombat = GetHostileNeutralSites(map).Any();
                 var sitesToAvoid = new HashSet<Site>();
                 var turn = new Turn(map.GetMySites());
-                var heuristic = Gaussian.ShadeHeuristic(Heuristic.GetStartingHeuristic(map), map, InCombat);
+                //var heuristic = Gaussian.ShadeHeuristic(Heuristic.GetStartingHeuristic(map), map, InCombat);
                 #endregion
 
                 #region Combat!!!!!
@@ -84,10 +84,9 @@ namespace Halite
                 #region building out the neutral attack moves...
                 var tempSlime = calculator.CalculatePotentialValue(SlimeH, GetPassiveNeutralNeighbors(map), map);
                 var bestTargets = GetPassiveNeutralNeighbors(map).OrderByDescending(x => tempSlime.Get(x).Value).ToList();
-                bestTargets.Take(Math.Min(9, (int)(bestTargets.Count * .7)));
-                var orderedList = GetOrderedNeutralConquerMoves(map, tempSlime, turn.RemainingSites);
+                bestTargets.Take((int)(bestTargets.Count * .75));
+                var orderedList = GetOrderedNeutralConquerMoves(map, tempSlime, turn.RemainingSites, bestTargets);
                 //orderedList = orderedList.Take(orderedList.Count / 2).ToList(); // Prune Bad Moves
-                //orderedList = orderedList.Where(x => x.Target.Neighbors.Any(n => n.IsMine && n.GetDirectionToNeighbour(x.Target) == Direction.North || n.GetDirectionToNeighbour(x.Target) == Direction.East)).ToList();
                 // PRUNE orderedList IF IN COMBAT
                 foreach (var nextBest in orderedList)
                 {
@@ -125,14 +124,14 @@ namespace Halite
                     if ((move == null || move.Direction == Direction.Still) && sitesToAvoid.Contains(site) && site.Strength > 0)
                     {
                         turn.RemoveMove(move.Site);
-                        RunAway(site, sitesToAvoid, heuristic, turn.Moves);
+                        RunAway(site, sitesToAvoid, internalHeuristic, turn.Moves);
                     }
                 }
                 foreach (var site in turn.RemainingSites)
                 {
                     if (WillMySiteOverflow(site, turn.Moves) || sitesToAvoid.Contains(site) && site.Strength > 0)
                     {
-                        RunAway(site, sitesToAvoid, heuristic, turn.Moves);
+                        RunAway(site, sitesToAvoid, internalHeuristic, turn.Moves);
                     }
                 }
 
@@ -172,21 +171,15 @@ namespace Halite
             return returnVal;
         }
 
-        private static List<PotentialMove> GetOrderedNeutralConquerMoves(Map map, Heuristic heuristic, HashSet<Site> availableSites)
+        private static List<PotentialMove> GetOrderedNeutralConquerMoves(Map map, Heuristic heuristic, HashSet<Site> availableSites, List<Site> bestTargets)
         {
-            var neutralSites = GetPassiveNeutralNeighbors(map);
-            DEPTH =  Math.Max(18 - neutralSites.Count / 3, 4); //InCombat ? 1 :
+            DEPTH =  Math.Max(18 - bestTargets.Count / 3, 4); //InCombat ? 1 :
             List<PotentialMove> potentialMoves = new List<PotentialMove>();
-            foreach (var ns in neutralSites)
+            foreach (var target in bestTargets)
             {
-                potentialMoves.AddRange(GetPotentialMoves(ns, heuristic, availableSites));
+                potentialMoves.AddRange(GetPotentialMoves(target, heuristic, target.Neighbors.Where(n => n.Owner == MyId).ToList(), new List<Site>(), 1, 0, availableSites));
             }
             return potentialMoves.OrderByDescending(x => x.Value).ToList();
-        }
-
-        private static List<PotentialMove> GetPotentialMoves(Site target, Heuristic h, HashSet<Site> availableSites)
-        {
-            return GetPotentialMoves(target, h, target.Neighbors.Where(n => n.Owner == MyId).ToList(), new List<Site>(), 1, 0, availableSites);
         }
 
         private static List<PotentialMove> GetPotentialMoves(Site target, Heuristic h, List<Site> newPieces, List<Site> previousSites, int layer, int productionStrength, HashSet<Site> sitesICanUse)

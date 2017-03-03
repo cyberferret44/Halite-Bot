@@ -8,28 +8,26 @@ namespace Halite
 {
     public static class SlimeHeuristic
     {
-        public static double SpreadVal(double production, Site s) => (production) * s.Production * (255 - s.Strength) / 255; // This won't work
-
-
         // this should only be called once per game, to get the initial field
         public static Heuristic GetSlimeHeuristic(Heuristic startingHeuristic, Map map)
         {
-            Heuristic slime = new Heuristic();
+            Heuristic spreadHeuristic = startingHeuristic.Clone();
+            Heuristic slime = startingHeuristic.Clone();
 
-            foreach(var site in map.GetAllSites())
+            foreach(var kvp in spreadHeuristic.GetDictionary())
             {
-                slime.AddNew(site, site.Production, site.Strength);
+                spreadHeuristic.Update(kvp.Key, Math.Sqrt(Math.Pow(kvp.Value.Production, 2) / Math.Pow(kvp.Value.Strength, 2)));
             }
 
-            for(int i=0; i < map.AreaPerPlayer; i++)
+            for (int i = 0; i < Math.Sqrt(map.AreaPerPlayer) * 4; i++)
             {
-                foreach(var site in map.GetAllSites())
+                foreach (var site in map.GetAllSites())
                 {
-                    SpreadToNeighbors(site, slime, startingHeuristic);
+                    SpreadToNeighbors(site, slime);
                 }
             }
 
-            foreach(var site in map.GetAllSites())
+            foreach (var site in map.GetAllSites())
             {
                 var val = slime.Get(site);
                 slime.Update(site, val.Production, val.Strength, val.Production / val.Strength); // impossible to break
@@ -38,12 +36,13 @@ namespace Halite
             return slime;
         }
 
-        public static void SpreadToNeighbors(Site s, Heuristic h, Heuristic starting)
+        public static void SpreadToNeighbors(Site s, Heuristic h)
         {
-            var siteVal = starting.Get(s);
-            foreach(var neighbor in s.ThreatZone)
+            var siteProduction = h.Get(s).Production;
+            foreach (var neighbor in s.ThreatZone)
             {
-                h.AddValue(neighbor, SpreadVal(s.Production, neighbor), 0.0);
+                double spreadVal = siteProduction * (neighbor.Production * (255 - neighbor.Strength) / 255); // This won't work
+                h.AddValue(neighbor, spreadVal, 0.0);
             }
         }
     }

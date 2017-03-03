@@ -1,0 +1,2 @@
+﻿1. the value of a square is its prod / strength
+2. absolute value can be determined by prod^2 / strength^2
