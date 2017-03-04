@@ -63,6 +63,8 @@ namespace Halite
         public int Area => Height * Width;
         public int NumPlayers => GetSites(x => !x.IsNeutral).Select(x => x.Owner).Distinct().Count();
         public int AreaPerPlayer => (int)(Area / NumPlayers);
+        public int TotalStrength => GetAllSites().Sum(s => s.Strength);
+        public int StrengthPerPlayer => TotalStrength / NumPlayers;
 
         public List<Site> GetMySites()
         {

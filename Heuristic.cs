@@ -7,7 +7,11 @@ namespace Halite
 {
     public class Heuristic
     {
-        Dictionary<Site, SiteValue> information = new Dictionary<Site, SiteValue>();
+        private Dictionary<Site, SiteValue> information = new Dictionary<Site, SiteValue>();
+        private Dictionary<Site, double> tempValues = new Dictionary<Site, double>();
+
+        public SiteValue Get(Site t) => information[t];
+        public Dictionary<Site, SiteValue> GetDictionary() => information;
 
         public void AddNew(Site p, SiteValue newValue)
         {
@@ -24,31 +28,28 @@ namespace Halite
             AddNew(t, new SiteValue { Production = production, Value = production / strength, Strength = strength });
         }
 
-        public void AddValue(Site t, double production, double strength, double value = 0.0)
+        public void AddValue(Site t, double value)
         {
-            var temp = information[t];
-            information[t] = new SiteValue {
-                Value = temp.Value + value,
-                Production = temp.Production + production,
-                Strength = temp.Strength + strength
-            };
+            information[t].Value += value;
         }
 
-        public SiteValue Get(Site t)
+        public void AddValue(Site t, double production, double strength, double value = 0.0)
         {
-            return information[t];
+            information[t].Strength += strength;
+            information[t].Production += production;
+            information[t].Value += value;
         }
 
         public void Update(Site t, double newValue)
         {
-            var temp = information[t];
-            information[t] = new SiteValue { Value = newValue, Production = temp.Production, Strength = temp.Strength };
+            information[t].Value = newValue;
         }
 
         public void Update(Site t, double newProduction, double newStrength, double newValue)
         {
-            var temp = information[t];
-            information[t] = new SiteValue { Value = newValue, Production = newProduction, Strength = newStrength };
+            information[t].Strength = newStrength;
+            information[t].Production = newProduction;
+            information[t].Value = newValue;
         }
 
         public double GetReducedValue(Site target, double strengthLost)
@@ -56,11 +57,6 @@ namespace Halite
             var h = information[target];
             double value = h.Value; // * .9 + target.Production / (target.Strength == 0 ? 1 : target.Strength) * .1;
             return value * target.Production / (strengthLost + target.Strength); //TODO may need reevaluated...  Should only be used for conquering neutral territory
-        }
-
-        public Dictionary<Site, SiteValue> GetDictionary()
-        {
-            return information;
         }
 
         public static Heuristic GetStartingHeuristic(Map m)
@@ -99,7 +95,7 @@ namespace Halite
             return newHeuristic;
         }
 
-        public void ZeroOutMySites()
+        public void ZeroOutMySitesValue()
         {
             List<Site> keys = new List<Site>();
             keys.AddRange(information.Keys.Where(x => x.IsMine));
@@ -130,7 +126,7 @@ namespace Halite
         }
     }
 
-    public struct SiteValue
+    public class SiteValue
     {
         public double Value;
         public double Production;

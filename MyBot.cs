@@ -28,7 +28,7 @@ namespace Halite
             MyId = Config.Get().PlayerTag;
             Networking.SendInit(RandomBotName);
 
-            var SlimeH = SlimeHeuristic.GetSlimeHeuristic(Heuristic.GetStartingHeuristic(map), map);
+            var SlimeH = new SlimeHeuristic().GetSlimeHeuristic(map);
             SlimeH.WriteCSV("csv2");
             #endregion
 
@@ -82,10 +82,10 @@ namespace Halite
                 //}
 
                 #region building out the neutral attack moves...
-                var tempSlime = calculator.CalculatePotentialValue(SlimeH, GetPassiveNeutralNeighbors(map), map);
-                var bestTargets = GetPassiveNeutralNeighbors(map).OrderByDescending(x => tempSlime.Get(x).Value).ToList();
+                //var tempSlime = calculator.CalculatePotentialValue(SlimeH, GetPassiveNeutralNeighbors(map), map);
+                var bestTargets = GetPassiveNeutralNeighbors(map).OrderByDescending(x => SlimeH.Get(x).Value).ToList();
                 bestTargets.Take((int)(bestTargets.Count * .75));
-                var orderedList = GetOrderedNeutralConquerMoves(map, tempSlime, turn.RemainingSites, bestTargets);
+                var orderedList = GetOrderedNeutralConquerMoves(map, SlimeH, turn.RemainingSites, bestTargets);
                 //orderedList = orderedList.Take(orderedList.Count / 2).ToList(); // Prune Bad Moves
                 // PRUNE orderedList IF IN COMBAT
                 foreach (var nextBest in orderedList)
@@ -110,7 +110,7 @@ namespace Halite
                 //        }
                 //    }
                 //}
-                var internalHeuristic = InternalHeuristic.GetInternalHeuristic(tempSlime, bestTargets);
+                var internalHeuristic = InternalHeuristic.GetInternalHeuristic(SlimeH, bestTargets);
                 foreach (var site in turn.RemainingSites)
                 {
                     // We want to move it to the area with the highest potential

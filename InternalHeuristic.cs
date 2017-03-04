@@ -12,7 +12,7 @@ namespace Halite
         public static Heuristic GetInternalHeuristic(Heuristic expansionHeuristic, List<Site> edgeTargets)
         {
             Heuristic heuristic = expansionHeuristic.Clone();
-            heuristic.ZeroOutMySites();
+            heuristic.ZeroOutMySitesValue();
 
             List<Site> currentNodes = new List<Site>();
             List<Site> nextNodes = new List<Site>();
