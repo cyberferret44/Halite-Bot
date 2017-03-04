@@ -54,8 +54,7 @@ namespace Halite
 
         public double GetReducedValue(Site target, double strengthLost)
         {
-            var h = information[target];
-            double value = h.Value; // * .9 + target.Production / (target.Strength == 0 ? 1 : target.Strength) * .1;
+            var value = information[target].Value;
             return value * target.Production / (strengthLost + target.Strength); //TODO may need reevaluated...  Should only be used for conquering neutral territory
         }
 

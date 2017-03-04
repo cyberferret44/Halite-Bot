@@ -44,8 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CombatHeuristic.cs" />
     <Compile Include="Config.cs" />
-    <Compile Include="Gaussian.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Heuristic.cs" />
     <Compile Include="InternalHeuristic.cs" />
@@ -56,7 +56,6 @@
     <Compile Include="Site.cs" />
     <Compile Include="SlimeHeuristic.cs" />
     <Compile Include="Turn.cs" />
-    <Compile Include="ValueCalculator.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Notes.txt" />

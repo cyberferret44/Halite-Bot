@@ -9,40 +9,37 @@ namespace Halite
 {
     public class MyBot
     {
-        public const string RandomBotName = "SlimeMoldBot";
-        public static int MyId;
+        public const string RandomBotName = "AwesomeSlime";
         public static int DEPTH = 4;
         public static bool InCombat = false;
         public static double OpportunityCost;
-        public static ValueCalculator calculator;
+        public static Heuristic ExpansionHeuristic;
 
         public static void Main(string[] args)
         {
             #region Shit to Start the Game
             Debugger.Launch();
-            calculator = new ValueCalculator();
             Console.SetIn(Console.In);
             Console.SetOut(Console.Out);
             var map = Networking.GetInit();
             OpportunityCost = map.GetSites(x => x.IsNeutral).OrderByDescending(x => x.Production).Take(map.GetSites(x => x.IsNeutral).Count / 3).Average(x => (double)x.Production);
-            MyId = Config.Get().PlayerTag;
             Networking.SendInit(RandomBotName);
 
-            var SlimeH = new SlimeHeuristic().GetSlimeHeuristic(map);
-            SlimeH.WriteCSV("csv2");
+            ExpansionHeuristic = new SlimeHeuristic().GetSlimeHeuristic(map);
+            ExpansionHeuristic.WriteCSV("csv2");
             #endregion
 
             while (true)
             {
-                #region Turn level variables
+                // Turn level variables
                 Networking.GetFrame(map);
                 InCombat = GetHostileNeutralSites(map).Any();
                 var sitesToAvoid = new HashSet<Site>();
                 var turn = new Turn(map.GetMySites());
-                //var heuristic = Gaussian.ShadeHeuristic(Heuristic.GetStartingHeuristic(map), map, InCombat);
-                #endregion
+                var edgeTargets = GetPassiveNeutralNeighbors(map).OrderByDescending(x => ExpansionHeuristic.Get(x).Value).ToList();
+                var internalHeuristic = InternalHeuristic.GetInternalHeuristic(ExpansionHeuristic, edgeTargets);
 
-                #region Combat!!!!!
+                // Combat Logic...
                 foreach (Site s in turn.RemainingSites.Where(m => m.Strength > 3 + m.Production))
                 {
                     int maxDamage = -1;
@@ -68,26 +65,9 @@ namespace Halite
                         }
                     }
                 }
-                #endregion
 
-
-                //var neutralSites = GetHostileNeutralSites(map);
-                //List<Site> combatAssistanceSites = new List<Site>();
-                //foreach (var site in turn.RemainingSites)
-                //{
-                //    if (neutralSites.Any(n => ManhattanDistance(n, site, map.Height, map.Width) < 8))
-                //    {
-                //        Helper.AssistCombatants(turn, heuristic, map);
-                //    }
-                //}
-
-                #region building out the neutral attack moves...
-                //var tempSlime = calculator.CalculatePotentialValue(SlimeH, GetPassiveNeutralNeighbors(map), map);
-                var bestTargets = GetPassiveNeutralNeighbors(map).OrderByDescending(x => SlimeH.Get(x).Value).ToList();
-                bestTargets.Take((int)(bestTargets.Count * .75));
-                var orderedList = GetOrderedNeutralConquerMoves(map, SlimeH, turn.RemainingSites, bestTargets);
-                //orderedList = orderedList.Take(orderedList.Count / 2).ToList(); // Prune Bad Moves
-                // PRUNE orderedList IF IN COMBAT
+                // Expansion logic...
+                var orderedList = GetOrderedNeutralConquerMoves(map, turn.RemainingSites, edgeTargets);
                 foreach (var nextBest in orderedList)
                 {
                     if (nextBest.MovesToDo.All(m => turn.RemainingSites.Contains(m.Site)) && !nextBest.MovesToDo.Any(m => turn.Moves.Any(ick => ick.Target == m.Target)))
@@ -95,22 +75,20 @@ namespace Halite
                         nextBest.MovesToDo.ForEach(x => turn.AddMove(x));
                     }
                 }
-                #endregion
 
                 // mark and/or handle dangerous sites
-                //foreach (var zero in map.GetSites(x => x.IsZeroNeutral && x.Neighbors.Any(n => n.IsEnemy && n.Strength > 0) && x.Neighbors.Any(n => n.IsMine)))
-                //{
-                //    var enemySites = zero.Neighbors.Where(x => x.IsEnemy && x.Strength > 0);
-                //    var friendlySites = zero.Neighbors.Where(x => x.Strength > 0 && x.IsMine && (turn.Moves.All(m => m.Site != x) || turn.Moves.Any(m => m.Site == x && m.Direction == Direction.Still))).ToList();
-                //    if (friendlySites.Count > 1)
-                //    {
-                //        if (enemySites.Sum(e => e.Strength) < friendlySites.Sum(f => f.Strength))
-                //        {
-                //            friendlySites.ForEach(f => turn.Moves.Add(new Move { Site = f, Direction = f.GetDirectionToNeighbour(zero) }));
-                //        }
-                //    }
-                //}
-                var internalHeuristic = InternalHeuristic.GetInternalHeuristic(SlimeH, bestTargets);
+                foreach (var zero in map.GetSites(x => x.IsZeroNeutral && x.Neighbors.Any(n => n.IsEnemy && n.Strength > 0) && x.Neighbors.Any(n => n.IsMine)))
+                {
+                    var enemySites = zero.Neighbors.Where(x => x.IsEnemy && x.Strength > 0);
+                    var friendlySites = zero.Neighbors.Where(x => x.Strength > 0 && x.IsMine && (turn.Moves.All(m => m.Site != x) || turn.Moves.Any(m => m.Site == x && m.Direction == Direction.Still))).ToList();
+                    if (friendlySites.Count > 1)
+                    {
+                        if (enemySites.Sum(e => e.Strength) < friendlySites.Sum(f => f.Strength))
+                        {
+                            friendlySites.ForEach(f => turn.Moves.Add(new Move { Site = f, Direction = f.GetDirectionToNeighbour(zero) }));
+                        }
+                    }
+                }
                 foreach (var site in turn.RemainingSites)
                 {
                     // We want to move it to the area with the highest potential
@@ -142,7 +120,7 @@ namespace Halite
         private static List<Site> GetHostileNeutralSites(Map m)
         {
             return m.GetSites(s => (s.IsZeroNeutral
-                                && s.Neighbors.Any(n => n.Owner == MyId)
+                                && s.Neighbors.Any(n => n.IsMine)
                                 && s.Neighbors.Any(n => n.IsEnemy || n.Neighbors.Any(nn => nn.IsEnemy || nn.Neighbors.Any(nnn => nnn.IsEnemy))))
                                 ||
                                 (s.Owner == 0 && s.Neighbors.Any(x => x.IsMine) && s.Neighbors.Any(x => x.IsEnemy))).ToList();
@@ -171,18 +149,18 @@ namespace Halite
             return returnVal;
         }
 
-        private static List<PotentialMove> GetOrderedNeutralConquerMoves(Map map, Heuristic heuristic, HashSet<Site> availableSites, List<Site> bestTargets)
+        private static List<PotentialMove> GetOrderedNeutralConquerMoves(Map map, HashSet<Site> availableSites, List<Site> bestTargets)
         {
             DEPTH =  Math.Max(18 - bestTargets.Count / 3, 4); //InCombat ? 1 :
             List<PotentialMove> potentialMoves = new List<PotentialMove>();
             foreach (var target in bestTargets)
             {
-                potentialMoves.AddRange(GetPotentialMoves(target, heuristic, target.Neighbors.Where(n => n.Owner == MyId).ToList(), new List<Site>(), 1, 0, availableSites));
+                potentialMoves.AddRange(GetPotentialMoves(target, target.Neighbors.Where(n => n.IsMine).ToList(), new List<Site>(), 1, 0, availableSites));
             }
             return potentialMoves.OrderByDescending(x => x.Value).ToList();
         }
 
-        private static List<PotentialMove> GetPotentialMoves(Site target, Heuristic h, List<Site> newPieces, List<Site> previousSites, int layer, int productionStrength, HashSet<Site> sitesICanUse)
+        private static List<PotentialMove> GetPotentialMoves(Site target, List<Site> newPieces, List<Site> previousSites, int layer, int productionStrength, HashSet<Site> sitesICanUse)
         {
             // Add in the option to wait...
             List<Move> stillMoves = new List<Move>();
@@ -235,7 +213,7 @@ namespace Halite
                     }
                     moves.AddRange(stillMoves);
                     int strengthCost = moves.Sum(z => z.Site.Production) + Math.Max(0, moves.Sum(z => z.Site.Strength) + productionStrength - 255) + (int)Math.Ceiling(OpportunityCost * end.Count * layer); //TODO add average production to loss
-                    result.Add(new PotentialMove { Target = target, MovesToDo = moves, Value = h.GetReducedValue(target, strengthCost) });
+                    result.Add(new PotentialMove { Target = target, MovesToDo = moves, Value = ExpansionHeuristic.GetReducedValue(target, strengthCost) });
                 }
             }
             else
@@ -246,7 +224,7 @@ namespace Halite
                     List<Site> newPiecesParam = new List<Site>();
                     foreach (var np in sa)
                     {
-                        newPiecesParam.AddRange(np.Neighbors.Where(n => n.Owner == MyId && newPieces.All(x => x != n) && previousSites.All(x => x != n) && newPiecesParam.All(x => x != n) && sitesICanUse.Contains(n)));
+                        newPiecesParam.AddRange(np.Neighbors.Where(n => n.IsMine && newPieces.All(x => x != n) && previousSites.All(x => x != n) && newPiecesParam.All(x => x != n) && sitesICanUse.Contains(n)));
                     }
                     if (sa.Any() && sa.Sum(x => x.Production) + previousSites.Sum(x => x.Production) > 0)
                     {
@@ -255,10 +233,10 @@ namespace Halite
                             moreStillMoves.Add(new Move() { Site = ps, Direction = Direction.Still });
                         moreStillMoves.AddRange(stillMoves);
                         int strengthCost = moreStillMoves.Sum(sm => sm.Site.Production) + (int)Math.Ceiling(OpportunityCost * sa.Count * (layer + (target.Strength - moreStillMoves.Sum(x => x.Site.Strength)) / moreStillMoves.Sum(x => x.Site.Production) + 1));
-                        result.Add(new PotentialMove { MovesToDo = moreStillMoves, Target = target, Value = h.GetReducedValue(target, strengthCost) });
+                        result.Add(new PotentialMove { MovesToDo = moreStillMoves, Target = target, Value = ExpansionHeuristic.GetReducedValue(target, strengthCost) });
                     }
                     sa.AddRange(previousSites);
-                    result.AddRange(GetPotentialMoves(target, h, newPiecesParam, sa, layer + 1, productionStrength + sa.Sum(s => s.Production), sitesICanUse));
+                    result.AddRange(GetPotentialMoves(target, newPiecesParam, sa, layer + 1, productionStrength + sa.Sum(s => s.Production), sitesICanUse));
                 }
             }
             return result;
@@ -275,7 +253,7 @@ namespace Halite
         private static List<Site> HostileNeutralSites(Map m)
         {
             return m.GetSites(s => s.IsNeutral
-                                && s.Neighbors.Any(n => n.Owner == MyId)
+                                && s.Neighbors.Any(n => n.IsMine)
                                 && (s.Neighbors.Any(n => n.IsEnemy)
                                 || s.Neighbors.Any(n => n.IsZeroNeutral && n.Neighbors.Any(n2 => n2.IsEnemy)))
                                 ).ToList();
