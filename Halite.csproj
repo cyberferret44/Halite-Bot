@@ -44,16 +44,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CombatHeuristic.cs" />
+    <Compile Include="CombatLearning.cs" />
     <Compile Include="Config.cs" />
-    <Compile Include="Gaussian.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Heuristic.cs" />
+    <Compile Include="InternalHeuristic.cs" />
     <Compile Include="Map.cs" />
     <Compile Include="MyBot.cs" />
     <Compile Include="Networking.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Site.cs" />
+    <Compile Include="SlimeHeuristic.cs" />
     <Compile Include="Turn.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Notes.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -18,6 +18,7 @@ namespace Halite
         public ushort Owner { get; internal set; }
         public ushort Strength { get; internal set; }
         public ushort Production { get; internal set; }
+        public double BasicValue => (double)Production / (double)(Strength == 0 ? 1 : Strength);
 
         public int X { get; }
         public int Y { get; }

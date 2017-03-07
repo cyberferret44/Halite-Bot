@@ -1,70 +1,70 @@
-﻿using System;
+﻿using System.Linq;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
-using System.Threading.Tasks;
-using System.Drawing;
 
 namespace Halite
 {
-    public class Heuristic<T>
+    public class Heuristic
     {
-        Dictionary<T, SiteValue> information = new Dictionary<T, SiteValue>();
+        private Dictionary<Site, SiteValue> information = new Dictionary<Site, SiteValue>();
+        private Dictionary<Site, double> tempValues = new Dictionary<Site, double>();
 
-        public void AddNew(T p, SiteValue newValue)
+        public SiteValue Get(Site t) => information[t];
+        public Dictionary<Site, SiteValue> GetDictionary() => information;
+
+        public void AddNew(Site p, SiteValue newValue)
         {
             information.Add(p, newValue);
         }
 
-        public void AddNew(T t, float production, float strength, float value)
+        public void AddNew(Site t, double production, double strength, double value)
         {
             AddNew(t, new SiteValue { Production = production, Value = value, Strength = strength });
         }
 
-        public void AddNew(T t, float production, float strength)
+        public void AddNew(Site t, double production, double strength)
         {
             AddNew(t, new SiteValue { Production = production, Value = production / strength, Strength = strength });
         }
 
-        public void Increase(T t, float production, float strength, float value)
+        public void AddValue(Site t, double value)
         {
-            var temp = information[t];
-            information[t] = new SiteValue {
-                Value = temp.Value + value,
-                Production = temp.Production + production,
-                Strength = temp.Strength + strength
-            };
+            information[t].Value += value;
         }
 
-        public SiteValue Get(T t)
+        public void AddValue(Site t, double production, double strength, double value = 0.0)
         {
-            return information[t];
+            information[t].Strength += strength;
+            information[t].Production += production;
+            information[t].Value += value;
         }
 
-        public void Update(T t, float newValue)
+        public void Update(Site t, double newValue)
         {
-            var temp = information[t];
-            information[t] = new SiteValue { Value = newValue, Production = temp.Production, Strength = temp.Strength };
+            information[t].Value = newValue;
         }
 
-        public float GetReducedValue(T target, int strengthLost)
+        public void Update(Site t, double newProduction, double newStrength, double newValue)
         {
-            var h = information[target];
-            return h.Value * h.Strength / (h.Strength + strengthLost); //TODO may need reevaluated...  Should only be used for conquering neutral territory
+            information[t].Strength = newStrength;
+            information[t].Production = newProduction;
+            information[t].Value = newValue;
         }
 
-        public Dictionary<T, SiteValue> GetDictionary()
+        public double GetReducedValue(Site target, double strengthLost)
         {
-            return information;
+            var value = information[target].Value;
+            return value * target.Production / (strengthLost + target.Strength); //TODO may need reevaluated...  Should only be used for conquering neutral territory
         }
 
-        public static Heuristic<Site> GetStartingHeuristic(Map m)
+        public static Heuristic GetStartingHeuristic(Map m)
         {
-            var result = new Heuristic<Site>();
+            var result = new Heuristic();
             foreach (var site in m.GetSites(x => true))
             {
-                float strength = site.Strength;
-                float production = site.Production;
+                double strength = site.Strength;
+                double production = site.Production;
                 if (site.IsMine)
                 {
                     production = 0;
@@ -82,12 +82,63 @@ namespace Halite
             }
             return result;
         }
+
+        public Heuristic Clone()
+        {
+            Heuristic newHeuristic = new Heuristic();
+            foreach(var kvp in information)
+            {
+                newHeuristic.AddNew(kvp.Key, kvp.Value);
+            }
+
+            return newHeuristic;
+        }
+
+        public void ZeroOutMySitesValue()
+        {
+            List<Site> keys = new List<Site>();
+            keys.AddRange(information.Keys.Where(x => x.IsMine));
+            foreach(var key in keys)
+            {
+                Update(key, 0.0);
+            }
+        }
+
+        public void ZeroOutAllSitesValue()
+        {
+            List<Site> keys = new List<Site>();
+            keys.AddRange(information.Keys);
+            foreach (var key in keys)
+            {
+                Update(key, 0.0);
+            }
+        }
+
+        public void WriteCSV(string name = "csv")
+        {
+            var csv = new StringBuilder();
+            string filePath = Directory.GetCurrentDirectory();
+
+            var list = information.Select(x => x.Key).OrderBy(x => x.X+ x.Y * 1000);
+            foreach(var site in list)
+            {
+                if(site.X == 0 && site.Y != 0)
+                {
+                    csv.Length--;
+                    csv.Append('\n');
+                }
+                csv.Append($"{(int)information[site].Value},");
+            }
+            csv.Length--;
+
+            File.WriteAllText(Directory.GetCurrentDirectory() + $"\\{name}.csv", csv.ToString());
+        }
     }
 
-    public struct SiteValue
+    public class SiteValue
     {
-        public float Value;
-        public float Production;
-        public float Strength;
+        public double Value;
+        public double Production;
+        public double Strength;
     }
 }
