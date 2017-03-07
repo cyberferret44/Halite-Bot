@@ -31,7 +31,7 @@ namespace Halite
                 nextNodes = new List<Site>();
             }
 
-            heuristic.WriteCSV("internal");
+            //heuristic.WriteCSV("internal");
             return heuristic;
         }
     }

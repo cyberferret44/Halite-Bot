@@ -104,6 +104,16 @@ namespace Halite
             }
         }
 
+        public void ZeroOutAllSitesValue()
+        {
+            List<Site> keys = new List<Site>();
+            keys.AddRange(information.Keys);
+            foreach (var key in keys)
+            {
+                Update(key, 0.0);
+            }
+        }
+
         public void WriteCSV(string name = "csv")
         {
             var csv = new StringBuilder();

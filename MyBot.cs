@@ -9,62 +9,64 @@ namespace Halite
 {
     public class MyBot
     {
-        public const string RandomBotName = "AwesomeSlime";
+        public const string BotName = "RandomSlime";
         public static int DEPTH = 4;
         public static bool InCombat = false;
         public static double OpportunityCost;
         public static Heuristic ExpansionHeuristic;
+        private static CombatLearning CurrentLearning;
+        private static CombatLearning PreviousLearning;
 
         public static void Main(string[] args)
         {
-            #region Shit to Start the Game
-            Debugger.Launch();
+            #region Variables to Start the Game
+            //Debugger.Launch();
             Console.SetIn(Console.In);
             Console.SetOut(Console.Out);
             var map = Networking.GetInit();
             OpportunityCost = map.GetSites(x => x.IsNeutral).OrderByDescending(x => x.Production).Take(map.GetSites(x => x.IsNeutral).Count / 3).Average(x => (double)x.Production);
-            Networking.SendInit(RandomBotName);
-
+            Networking.SendInit(BotName);
             ExpansionHeuristic = new SlimeHeuristic().GetSlimeHeuristic(map);
-            ExpansionHeuristic.WriteCSV("csv2");
+            Random random = new Random();
+            //ExpansionHeuristic.WriteCSV("csv2");
             #endregion
 
             while (true)
             {
+                // Initialize the new map state
+                try
+                {
+                    Networking.GetFrame(map);
+                }
+                catch (Exception)
+                {
+                    break;
+                }
+                
+
+                // Record data for Machine Learning before doing anything else.....
+                CurrentLearning = new CombatLearning(map);
+                if(PreviousLearning != null && PreviousLearning.HasData)
+                {
+                    PreviousLearning.WriteToFile(CurrentLearning.Stats);
+                }
+                
+
                 // Turn level variables
-                Networking.GetFrame(map);
                 InCombat = GetHostileNeutralSites(map).Any();
                 var sitesToAvoid = new HashSet<Site>();
-                var turn = new Turn(map.GetMySites());
+                var turn = new Turn(map.MySites);
                 var edgeTargets = GetPassiveNeutralNeighbors(map).OrderByDescending(x => ExpansionHeuristic.Get(x).Value).ToList();
                 var internalHeuristic = InternalHeuristic.GetInternalHeuristic(ExpansionHeuristic, edgeTargets);
-
-                // Combat Logic...
-                foreach (Site s in turn.RemainingSites.Where(m => m.Strength > 3 + m.Production))
+                
+                
+                // Combat Logic...  Random for now, will train on data later
+                foreach(var combatSite in CurrentLearning.SitesInCombat.Where(s => s.Strength > 0))
                 {
-                    int maxDamage = -1;
-                    Site target = null;
-                    foreach (var neighbor in s.Neighbors.Where(n => n.Neighbors.Any(x => x.IsEnemy) && s.Strength == 0))
-                    {
-                        var enemies = neighbor.Neighbors.Where(x => x.IsEnemy);
-                        int possibleDamage = enemies.Sum(e => Math.Min(e.Strength, s.Strength) + (e.Strength <= s.Strength ? e.Production : 0));
-                        possibleDamage += Math.Max(0, s.Strength - enemies.Sum(x => x.Strength));
-                        if (possibleDamage > maxDamage)
-                        {
-                            target = neighbor;
-                            maxDamage = possibleDamage;
-                        }
-                    }
-
-                    if (maxDamage > s.Strength + s.Production)
-                    {
-                        turn.AddMove(s, target);
-                        foreach (var enemy in target.Neighbors.Where(x => x.IsEnemy && x.Strength > 1))
-                        {
-                            target.GetDangerousSites(enemy.ThreatZone).ForEach(x => sitesToAvoid.Add(x));
-                        }
-                    }
+                    Direction randomDirection = (Direction)random.Next(Enum.GetValues(typeof(Direction)).Length);
+                    turn.AddMove(combatSite, randomDirection);
                 }
+                
 
                 // Expansion logic...
                 var orderedList = GetOrderedNeutralConquerMoves(map, turn.RemainingSites, edgeTargets);
@@ -76,34 +78,12 @@ namespace Halite
                     }
                 }
 
-                // mark and/or handle dangerous sites
-                foreach (var zero in map.GetSites(x => x.IsZeroNeutral && x.Neighbors.Any(n => n.IsEnemy && n.Strength > 0) && x.Neighbors.Any(n => n.IsMine)))
-                {
-                    var enemySites = zero.Neighbors.Where(x => x.IsEnemy && x.Strength > 0);
-                    var friendlySites = zero.Neighbors.Where(x => x.Strength > 0 && x.IsMine && (turn.Moves.All(m => m.Site != x) || turn.Moves.Any(m => m.Site == x && m.Direction == Direction.Still))).ToList();
-                    if (friendlySites.Count > 1)
-                    {
-                        if (enemySites.Sum(e => e.Strength) < friendlySites.Sum(f => f.Strength))
-                        {
-                            friendlySites.ForEach(f => turn.Moves.Add(new Move { Site = f, Direction = f.GetDirectionToNeighbour(zero) }));
-                        }
-                    }
-                }
+                // Internal Logic: move to the area with the highest potential
                 foreach (var site in turn.RemainingSites)
                 {
-                    // We want to move it to the area with the highest potential
                     Site bestTarget = Helper.GetBestNeighbor(site, internalHeuristic, turn.Moves, map);
                     if (bestTarget != null)
                         turn.AddMove(site, bestTarget);
-                }
-                foreach (var site in turn.AllSites)
-                {
-                    var move = turn.Moves.FirstOrDefault(x => x.Site == site);
-                    if ((move == null || move.Direction == Direction.Still) && sitesToAvoid.Contains(site) && site.Strength > 0)
-                    {
-                        turn.RemoveMove(move.Site);
-                        RunAway(site, sitesToAvoid, internalHeuristic, turn.Moves);
-                    }
                 }
                 foreach (var site in turn.RemainingSites)
                 {
@@ -113,6 +93,11 @@ namespace Halite
                     }
                 }
 
+                if (CurrentLearning.HasData)
+                {
+                    CurrentLearning.Record(turn.Moves);
+                }
+                PreviousLearning = CurrentLearning;
                 Networking.SendMoves(turn.Moves);
             }
         }

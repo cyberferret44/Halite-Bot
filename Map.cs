@@ -66,10 +66,7 @@ namespace Halite
         public int TotalStrength => GetAllSites().Sum(s => s.Strength);
         public int StrengthPerPlayer => TotalStrength / NumPlayers;
 
-        public List<Site> GetMySites()
-        {
-            return _sitesList.Where(s => s.Owner == Config.Get().PlayerTag).ToList();
-        }
+        public List<Site> MySites => _sitesList.Where(s => s.Owner == Config.Get().PlayerTag).ToList();
 
         #region Implementation
 

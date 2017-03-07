@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CombatHeuristic.cs" />
+    <Compile Include="CombatLearning.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Heuristic.cs" />
