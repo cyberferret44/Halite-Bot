@@ -14,13 +14,13 @@ namespace Halite
         public static bool InCombat = false;
         public static double OpportunityCost;
         public static Heuristic ExpansionHeuristic;
-        private static CombatLearning CurrentLearning;
-        private static CombatLearning PreviousLearning;
+        //private static CombatLearning CurrentLearning;
+        //private static CombatLearning PreviousLearning;
 
         public static void Main(string[] args)
         {
             #region Variables to Start the Game
-            //Debugger.Launch();
+            Debugger.Launch();
             Console.SetIn(Console.In);
             Console.SetOut(Console.Out);
             var map = Networking.GetInit();
@@ -29,6 +29,7 @@ namespace Halite
             ExpansionHeuristic = new SlimeHeuristic().GetSlimeHeuristic(map);
             Random random = new Random();
             //ExpansionHeuristic.WriteCSV("csv2");
+            CombatHeuristic.PopulateCombarHeuristic();
             #endregion
 
             while (true)
@@ -45,28 +46,40 @@ namespace Halite
                 
 
                 // Record data for Machine Learning before doing anything else.....
-                CurrentLearning = new CombatLearning(map);
-                if(PreviousLearning != null && PreviousLearning.HasData)
-                {
-                    PreviousLearning.WriteToFile(CurrentLearning.Stats);
-                }
+                //CurrentLearning = new CombatLearning(map);
+                //if(PreviousLearning != null && PreviousLearning.HasData)
+                //{
+                //    PreviousLearning.WriteToFile(CurrentLearning.Stats);
+                //}
                 
-
                 // Turn level variables
                 InCombat = GetHostileNeutralSites(map).Any();
                 var sitesToAvoid = new HashSet<Site>();
                 var turn = new Turn(map.MySites);
                 var edgeTargets = GetPassiveNeutralNeighbors(map).OrderByDescending(x => ExpansionHeuristic.Get(x).Value).ToList();
                 var internalHeuristic = InternalHeuristic.GetInternalHeuristic(ExpansionHeuristic, edgeTargets);
-                
-                
+
+
                 // Combat Logic...  Random for now, will train on data later
-                foreach(var combatSite in CurrentLearning.SitesInCombat.Where(s => s.Strength > 0))
+                //foreach(var combatSite in CurrentLearning.SitesInCombat.Where(s => s.Strength > 0))
+                //{
+                //    Direction randomDirection = (Direction)random.Next(Enum.GetValues(typeof(Direction)).Length);
+                //    turn.AddMove(combatSite, randomDirection);
+                //}
+
+                foreach (var s in map.MySites)
                 {
-                    Direction randomDirection = (Direction)random.Next(Enum.GetValues(typeof(Direction)).Length);
-                    turn.AddMove(combatSite, randomDirection);
+                    var grid = new LearningGrid(s, map);
+                    if (grid.HasEnemy)
+                    {
+                        turn.AddMove(new Move { Direction = CombatHeuristic.getBestMove(grid.ToString()), Site = s });
+                    }
                 }
-                
+
+                //foreach(site with manhattan distance 3 enemy)
+                //  get its grid, grab it's best possible move from the combabt dictionary, and do that.
+                // that's fucking it
+
 
                 // Expansion logic...
                 var orderedList = GetOrderedNeutralConquerMoves(map, turn.RemainingSites, edgeTargets);
@@ -93,11 +106,11 @@ namespace Halite
                     }
                 }
 
-                if (CurrentLearning.HasData)
-                {
-                    CurrentLearning.Record(turn.Moves);
-                }
-                PreviousLearning = CurrentLearning;
+                //if (CurrentLearning.HasData)
+                //{
+                //    CurrentLearning.Record(turn.Moves);
+                //}
+                //PreviousLearning = CurrentLearning;
                 Networking.SendMoves(turn.Moves);
             }
         }

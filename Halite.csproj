@@ -50,6 +50,7 @@
     <Compile Include="Helper.cs" />
     <Compile Include="Heuristic.cs" />
     <Compile Include="InternalHeuristic.cs" />
+    <Compile Include="LearningGrid.cs" />
     <Compile Include="Map.cs" />
     <Compile Include="MyBot.cs" />
     <Compile Include="Networking.cs" />

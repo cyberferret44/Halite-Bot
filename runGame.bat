@@ -1,2 +1,2 @@
-csc Config.cs HaliteHelper.cs Map.cs Networking.cs Site.cs Heuristic.cs Helper.cs Turn.cs SlimeHeuristic.cs InternalHeuristic.cs CombatHeuristic.cs CombatLearning.cs -out:MyBot.exe MyBot.cs /debug:full
-halite -d "15 15" "MyBot.exe" "CompBot.exe" -t
+csc Config.cs HaliteHelper.cs Map.cs Networking.cs Site.cs CombatHeuristic.cs CombatLearning.cs Helper.cs Heuristic.cs InternalHeuristic.cs LearningGrid.cs SlimeHeuristic.cs Turn.cs -out:MyBot.exe MyBot.cs /debug:full
+halite -d "30 30" "MyBot.exe" "LastCompetitionBotCompilation.exe" -t
